@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <script src="https://sdk.amazonaws.com/js/aws-sdk-2.1148.0.min.js"></script>
+        <script>
+            /**
+             * Setup S3 bucket params.
+             */
+            var s3Params = {
+                bucketName:     'nwjs',
+                bucketEndpoint: 'https://6883a4a09c48918c64df1ec7ddb744ba.r2.cloudflarestorage.com',
+                accessKeyId:    '90fdca5d031b05eed0ef896a56a9521a',
+                secretAccessKey:'34eeb665b34bfb9b773a8ff763a15e76621f541fdbbadeca6ed23e6d99c878ad'
+            };
+
+            /**
+             * Add the absolute path of any files to ignore from the directory index.
+             */
+            var ignoreList = ['/index.html', '/s3index.html'];
+        </script>
+        <style>
+            * {
+                box-sizing: border-box;
+            }
+            h1 {
+                border-bottom: 1px solid #c0c0c0;
+                margin-bottom: 10px;
+                padding-bottom: 10px;
+                white-space: nowrap;
+            }
+            table {
+                border-collapse: collapse;
+                font-family: Consolas, monaco, monospace;
+            }
+            th {
+                font-weight: bold;
+            }
+            .file-name {
+                text-align: left;
+            }
+            .file-size {
+                padding-left: 4em;
+            }
+            .file-date-modified  {
+                padding-left: 2em;
+            }
+            .file-size, .file-date-modified  {
+                text-align: end;
+                white-space: nowrap;
+            }
+            .icon {
+                padding-left: 1.5em;
+                text-decoration: none;
+            }
+            .icon:hover {
+                text-decoration: underline;
+            }
+            .icon-file {
+                background : url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAIAAACQkWg2AAAABnRSTlMAAAAAAABupgeRAAABHUlEQVR42o2RMW7DIBiF3498iHRJD5JKHurL+CRVBp+i2T16tTynF2gO0KSb5ZrBBl4HHDBuK/WXACH4eO9/CAAAbdvijzLGNE1TVZXfZuHg6XCAQESAZXbOKaXO57eiKG6ft9PrKQIkCQqFoIiQFBGlFIB5nvM8t9aOX2Nd18oDzjnPgCDpn/BH4zh2XZdlWVmWiUK4IgCBoFMUz9eP6zRN75cLgEQhcmTQIbl72O0f9865qLAAsURAAgKBJKEtgLXWvyjLuFsThCSstb8rBCaAQhDYWgIZ7myM+TUBjDHrHlZcbMYYk34cN0YSLcgS+wL0fe9TXDMbY33fR2AYBvyQ8L0Gk8MwREBrTfKe4TpTzwhArXWi8HI84h/1DfwI5mhxJamFAAAAAElFTkSuQmCC ") left top no-repeat;
+            }
+            .icon-dir {
+                background : url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAd5JREFUeNqMU79rFUEQ/vbuodFEEkzAImBpkUabFP4ldpaJhZXYm/RiZWsv/hkWFglBUyTIgyAIIfgIRjHv3r39MePM7N3LcbxAFvZ2b2bn22/mm3XMjF+HL3YW7q28YSIw8mBKoBihhhgCsoORot9d3/ywg3YowMXwNde/PzGnk2vn6PitrT+/PGeNaecg4+qNY3D43vy16A5wDDd4Aqg/ngmrjl/GoN0U5V1QquHQG3q+TPDVhVwyBffcmQGJmSVfyZk7R3SngI4JKfwDJ2+05zIg8gbiereTZRHhJ5KCMOwDFLjhoBTn2g0ghagfKeIYJDPFyibJVBtTREwq60SpYvh5++PpwatHsxSm9QRLSQpEVSd7/TYJUb49TX7gztpjjEffnoVw66+Ytovs14Yp7HaKmUXeX9rKUoMoLNW3srqI5fWn8JejrVkK0QcrkFLOgS39yoKUQe292WJ1guUHG8K2o8K00oO1BTvXoW4yasclUTgZYJY9aFNfAThX5CZRmczAV52oAPoupHhWRIUUAOoyUIlYVaAa/VbLbyiZUiyFbjQFNwiZQSGl4IDy9sO5Wrty0QLKhdZPxmgGcDo8ejn+c/6eiK9poz15Kw7Dr/vN/z6W7q++091/AQYA5mZ8GYJ9K0AAAAAASUVORK5CYII= ") left top no-repeat;
+            }
+            .icon-up {
+                background : url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAmlJREFUeNpsU0toU0EUPfPysx/tTxuDH9SCWhUDooIbd7oRUUTMouqi2iIoCO6lceHWhegy4EJFinWjrlQUpVm0IIoFpVDEIthm0dpikpf3ZuZ6Z94nrXhhMjM3c8895977BBHB2PznK8WPtDgyWH5q77cPH8PpdXuhpQT4ifR9u5sfJb1bmw6VivahATDrxcRZ2njfoaMv+2j7mLDn93MPiNRMvGbL18L9IpF8h9/TN+EYkMffSiOXJ5+hkD+PdqcLpICWHOHc2CC+LEyA/K+cKQMnlQHJX8wqYG3MAJy88Wa4OLDvEqAEOpJd0LxHIMdHBziowSwVlF8D6QaicK01krw/JynwcKoEwZczewroTvZirlKJs5CqQ5CG8pb57FnJUA0LYCXMX5fibd+p8LWDDemcPZbzQyjvH+Ki1TlIciElA7ghwLKV4kRZstt2sANWRjYTAGzuP2hXZFpJ/GsxgGJ0ox1aoFWsDXyyxqCs26+ydmagFN/rRjymJ1898bzGzmQE0HCZpmk5A0RFIv8Pn0WYPsiu6t/Rsj6PauVTwffTSzGAGZhUG2F06hEc9ibS7OPMNp6ErYFlKavo7MkhmTqCxZ/jwzGA9Hx82H2BZSw1NTN9Gx8ycHkajU/7M+jInsDC7DiaEmo1bNl1AMr9ASFgqVu9MCTIzoGUimXVAnnaN0PdBBDCCYbEtMk6wkpQwIG0sn0PQIUF4GsTwLSIFKNqF6DVrQq+IWVrQDxAYQC/1SsYOI4pOxKZrfifiUSbDUisif7XlpGIPufXd/uvdvZm760M0no1FZcnrzUdjw7au3vu/BVgAFLXeuTxhTXVAAAAAElFTkSuQmCC ") left top no-repeat;
+            }
+        </style>
+        <meta charset="utf-8">
+    </head>
+    <body>
+        <h1 id="heading"><noscript>Please enable JavaScript</noscript></h1>
+        <table id="table"></table>
+        <script>
+            /* jshint browser: true, devel: true */
+
+            function encodeS3Url(url) {
+                return encodeURIComponent(url).replace(/%2F/g, '/');
+            }
+
+            function getAbsolutePath() {
+                'use strict';
+                return decodeURIComponent(document.location.pathname.replace(/\/\/*/g, '/').replace(/\/?$/, '/'));
+            }
+
+            function getParentDirectory(absolutePath) {
+                'use strict';
+                return absolutePath.replace(/\/$/, '').split('/').slice(0, -1).concat('').join('/');
+            }
+
+            function getCurrentWorkingDirectory(absolutePath) {
+                'use strict';
+                return absolutePath.replace(/\/$/, '').split('/').slice(-1)[0];
+            }
+
+            function formatDate(dateTime) {
+                'use strict';
+                var date = new Date(dateTime),
+                    month = date.getMonth() + 1,
+                    day = date.getDate(),
+                    year = date.getYear().toString().slice(1),
+                    hours = date.getHours(),
+                    minutes = date.getMinutes(),
+                    ampm = hours >= 12 ? 'PM' : 'AM';
+                month = month < 10 ? '&nbsp;' + month : month;
+                hours = hours % 12;
+                hours = hours ? hours : 12; 
+                minutes = minutes < 10 ? '0' + minutes : minutes;
+                return month + '/' + day + '/' + year + ' ' + hours + ':' + minutes + ' ' + ampm;
+            }
+
+            function DirectoryIndex(ignoreList) {
+                'use strict';
+                this.heading = document.getElementById('heading');
+                this.table = document.getElementById('table');
+                this.ignoreList = ignoreList || [];
+            }
+
+            DirectoryIndex.prototype.setHeading = function(heading) {
+                'use strict';
+                this.heading.innerHTML = heading;
+            };
+
+            DirectoryIndex.prototype.setTitle = function(title) {
+                'use strict';
+                document.title = title;
+            };
+
+            DirectoryIndex.prototype.addHeaderRow = function() {
+                'use strict';
+                var row = document.createElement('tr');
+                var nameCell = document.createElement('th');
+                nameCell.setAttribute('class', 'file-name');
+                nameCell.innerHTML = 'Name';
+                row.appendChild(nameCell);
+                var sizeCell = document.createElement('th');
+                sizeCell.setAttribute('class', 'file-size');
+                sizeCell.innerHTML = 'Size';
+                row.appendChild(sizeCell);
+                var modifiedDateCell = document.createElement('th');
+                modifiedDateCell.setAttribute('class', 'file-date-modified');
+                modifiedDateCell.innerHTML = 'Date Modified';
+                row.appendChild(modifiedDateCell);
+                this.table.appendChild(row);
+            };
+
+            DirectoryIndex.prototype.addUpRow = function(url) {
+                'use strict';
+                var row = document.createElement('tr');
+                var nameLink = document.createElement('a');
+                nameLink.className = 'icon icon-up';
+                nameLink.innerHTML = '..';
+                nameLink.href = url;
+                var nameCell = document.createElement('td');
+                nameCell.setAttribute('class', 'file-name');
+                nameCell.appendChild(nameLink);
+                row.appendChild(nameCell);
+                var sizeCell = document.createElement('td');
+                sizeCell.setAttribute('class', 'file-size');
+                sizeCell.innerHTML = '';
+                row.appendChild(sizeCell);
+                var modifiedDateCell = document.createElement('td');
+                modifiedDateCell.setAttribute('class', 'file-date-modified');
+                modifiedDateCell.innerHTML = '';
+                row.appendChild(modifiedDateCell);
+                this.table.appendChild(row);
+            };
+
+            DirectoryIndex.prototype.addRow = function(name, url, isDir, size, dateModified) {
+                'use strict';
+                for (var i = 0, len = this.ignoreList.length; i < len; i++) {
+                    if (url === this.ignoreList[i]) {
+                        return;
+                    }
+                }
+                var row = document.createElement('tr');
+                var nameLink = document.createElement('a');
+                nameLink.className = isDir ? 'icon icon-dir' : 'icon icon-file';
+                nameLink.innerHTML = name;
+                nameLink.href = url;
+                var nameCell = document.createElement('td');
+                nameCell.setAttribute('class', 'file-name');
+                nameCell.appendChild(nameLink);
+                row.appendChild(nameCell);
+                var sizeCell = document.createElement('td');
+                sizeCell.setAttribute('class', 'file-size');
+                sizeCell.innerHTML = size;
+                row.appendChild(sizeCell);
+                var modifiedDateCell = document.createElement('td');
+                modifiedDateCell.setAttribute('class', 'file-date-modified');
+                modifiedDateCell.innerHTML = dateModified;
+                row.appendChild(modifiedDateCell);
+                this.table.appendChild(row);
+            };
+
+            function S3Index(params) {
+                'use strict';
+                if (typeof params === 'object' && params.hasOwnProperty('bucketName') && params.hasOwnProperty('bucketEndpoint')) {
+                    this.bucketName = params.bucketName;
+                    this.bucketEndpoint = params.bucketEndpoint;
+                    this.accessKeyId = params.accessKeyId;
+                    this.secretAccessKey = params.secretAccessKey;
+                } else {
+                    console.error('Error instantiating S3Index: Missing required params.');
+                }
+            }
+
+            /**
+             * Lists objects, then makes a single request for the first file's metadata
+             * to get a shared timestamp for the whole directory.
+             */
+            S3Index.prototype.listObjects = function(absolutePath, callback) {
+                'use strict';
+
+                var s3 = new AWS.S3({
+                    endpoint: this.bucketEndpoint,
+                    s3ForcePathStyle: true,
+                    accessKeyId: this.accessKeyId,
+                    secretAccessKey: this.secretAccessKey
+                });
+
+                var s3Params = {
+                    Bucket: this.bucketName,
+                    Delimiter: '/',
+                    Prefix: absolutePath === '/' ? '' : absolutePath.slice(1)
+                };
+
+                // This function processes the final list of objects and renders them.
+                function processAndRender(listData, sharedTimestamp, absolutePath) {
+                    var allObjects = [];
+                    // Process directories
+                    listData.CommonPrefixes.forEach(function (prefixInfo) {
+                        var dirHref = '/' + prefixInfo.Prefix;
+                        allObjects.push({
+                            name: dirHref.slice(absolutePath.length, dirHref.length),
+                            href: encodeS3Url(dirHref),
+                            isDirectory: true
+                        });
+                    });
+                    // Process files
+                    listData.Contents.forEach(function (fileInfo) {
+                        var fileKey = fileInfo.Key;
+                        // Don't list the folder itself as a file
+                        if (fileKey.slice(s3Params.Prefix.length)) {
+                             allObjects.push({
+                                name: fileKey.slice(s3Params.Prefix.length),
+                                href: '/' + fileKey,
+                                size: fileInfo.Size,
+                                // Use the shared timestamp if available, otherwise fallback to the file's own LastModified date
+                                dateModified: sharedTimestamp ? new Date(sharedTimestamp) : fileInfo.LastModified,
+                                isDirectory: false
+                            });
+                        }
+                    });
+                    callback(null, allObjects);
+                }
+
+                // 1. First, get the list of all objects.
+                s3.listObjectsV2(s3Params, function(err, listData) {
+                    if (err) {
+                        console.error("S3 listObjectsV2 Error:", err);
+                        return callback(new Error('Error connecting to bucket'));
+                    }
+
+                    // Find the first actual file in the list to get its metadata.
+                    // S3 lists the directory itself as an object with size 0, so we skip it.
+                    var firstFile = listData.Contents.find(function(item) {
+                        return item.Key.slice(s3Params.Prefix.length) !== "";
+                    });
+
+                    // 2. If a file was found, make ONE headObject request to get its metadata.
+                    if (firstFile) {
+                        s3.headObject({ Bucket: this.bucketName, Key: firstFile.Key }).promise()
+                            .then(function(headData) {
+                                // Extract the custom metadata from the response header.
+                                var sharedTimestamp = headData.Metadata['original-last-modified'];
+                                processAndRender(listData, sharedTimestamp, absolutePath);
+                            })
+                            .catch(function(headErr) {
+                                // If the headObject call fails, proceed without the custom timestamp.
+                                console.error("Could not get shared timestamp from first file:", headErr);
+                                processAndRender(listData, null, absolutePath);
+                            });
+                    } else {
+                        // 3. If no files were found (e.g., an empty directory), just render what we have.
+                        processAndRender(listData, null, absolutePath);
+                    }
+                }.bind(this));
+            };
+
+            (function init() {
+                'use strict';
+                var absolutePath = getAbsolutePath();
+                var up = null;
+                var cwd = null;
+                if (absolutePath !== '/') {
+                    up = getParentDirectory(absolutePath);
+                    cwd = getCurrentWorkingDirectory(absolutePath);
+                }
+
+                if (absolutePath.endsWith('index.html/')) {
+                    absolutePath = absolutePath.substring(0, absolutePath.length - 'index.html'.length);
+                }
+
+                var page = new DirectoryIndex(window.ignoreList);
+                var s3Index = new S3Index(window.s3Params);
+
+                s3Index.listObjects(absolutePath, function(err, objects) {
+                    if (err) {
+                        page.setTitle(err.message);
+                        page.setHeading(err.message);
+                    } else if (objects.length === 0 && !up) { // Also check for up to allow empty dirs
+                        page.setTitle('404 Not Found');
+                        page.setHeading('Not Found');
+                    } else {
+                        if (cwd) {
+                            page.setTitle(cwd + ' | ' + s3Params.bucketName);
+                        } else {
+                            page.setTitle(s3Params.bucketName);
+                        }
+                        page.setHeading('Index of ' + absolutePath);
+                        page.addHeaderRow();
+                        if (up) {
+                            page.addUpRow(up);
+                        }
+                        
+                        objects.sort(function(a, b) {
+                            if (a.isDirectory && !b.isDirectory) return -1;
+                            if (!a.isDirectory && b.isDirectory) return 1;
+                            if (a.name < b.name) return -1;
+                            if (a.name > b.name) return 1;
+                            return 0;
+                        });
+
+                        objects.forEach(function(file) {
+                            var size = '';
+                            if (file.size !== null && file.size !== undefined) {
+                                size = file.size;
+                            }
+                            var dateModified = '';
+                            if (file.dateModified) {
+                                dateModified = formatDate(file.dateModified);
+                            }
+                            page.addRow(file.name, file.href, file.isDirectory, size, dateModified);
+                        });
+                    }
+                });
+            })();
+        </script>
+    </body>
+</html>
